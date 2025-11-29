@@ -2,7 +2,7 @@ using Domain.Common;
 
 namespace Domain.Entities;
 
-public class ContactUs: BaseEntity
+public class ContactUsRequest: BaseEntity
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }
