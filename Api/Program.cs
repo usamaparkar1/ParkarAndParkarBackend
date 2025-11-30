@@ -1,41 +1,83 @@
-var builder = WebApplication.CreateBuilder(args);
+using Application.Services.ContactUs;
+using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+#region Main
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+// Step 1: Configure environment-specific settings
+ConfigureEnvironmentSettings(builder);
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Step 2: Add DbContext with SQL Server provider
+AddDatabaseContextWithSqlServer(builder);
+
+// Step 3: Register Dependencies and Services for API
+RegisterDependenciesForApi(builder.Services);
+
+// Step 4: Add Controllers and Swagger
+AddControllersAndSwagger(builder);
+
+// Final Step: Build the application
+BuildAndRunApplication(builder);
+#endregion
+
+#region Methods
+// Step 1: Configure Environment-Specific Settings
+static void ConfigureEnvironmentSettings(WebApplicationBuilder builder)
 {
-    app.MapOpenApi();
+    builder.Configuration
+        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+        .AddEnvironmentVariables();
 }
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
+// Step 2: Add DbContext with SQL Server provider
+static void AddDatabaseContextWithSqlServer(WebApplicationBuilder builder)
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    string? connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    builder.Services.AddDbContext<ParkarAndParkarDbContext>(options =>
+    {
+        options.UseSqlServer(connectionString);
+    });
 }
+
+// Step 3: Register Dependencies and Services for API
+static void RegisterDependenciesForApi(IServiceCollection services)
+{
+    services.AddScoped<IContactUsService, ContactUsService>();
+}
+
+static void AddControllersAndSwagger(WebApplicationBuilder builder)
+{
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+
+    // Add CORS
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowAll", policy =>
+        {
+            policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
+        });
+    });
+}
+
+static void BuildAndRunApplication(WebApplicationBuilder builder)
+{
+    var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseCors("AllowAll");
+    app.MapControllers();
+
+    app.Run();
+}
+#endregion
