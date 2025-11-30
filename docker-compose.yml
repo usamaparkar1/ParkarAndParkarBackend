@@ -4,7 +4,7 @@ services:
     container_name: parkardb
     environment:
       ACCEPT_EULA: "Y"
-      SA_PASSWORD: ""
+      SA_PASSWORD: "ParkarAndParkar#1060"
     ports:
       - "1433:1433"
     volumes:
