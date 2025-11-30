@@ -1,0 +1,15 @@
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: parkardb
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ""
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssqldata:/var/opt/mssql
+    restart: always
+
+volumes:
+  mssqldata:
